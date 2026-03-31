@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salon Client Tracker</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  :root {
+    --om: #E91E8A; --om-light: #FDE7F3; --om-mid: #F9A8D4;
+    --dg: #93C5FD; --dg-dark: #3B82F6; --dg-light: #EFF6FF;
+    --ny: #C4B5FD; --ny-dark: #8B5CF6; --ny-light: #F5F3FF;
+    --bio: #F87171; --bio-dark: #DC2626; --bio-light: #FEF2F2;
+    --bkt: #60A5FA; --bkt-dark: #2563EB; --bkt-light: #DBEAFE;
+    
+    --bg: #FAFBFC; --white: #FFFFFF;
+    --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280;
+    --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937;
+    --gray-900: #111827;
+    
+    --green: #10B981; --green-light: #D1FAE5;
+    --amber: #F59E0B; --amber-light: #FEF3C7;
+    --red: #EF4444; --red-light: #FEE2E2;
+    --blue-light: #DBEAFE;
+    
+    --no-outcome: #D1D5DB;
+  }
+
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--gray-900); font-size: 14px; }
+
+  /* === TOP BAR === */
+  .topbar { background: var(--gray-900); color: white; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; position: relative; z-index: 60; }
+  .topbar-left h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .topbar-left p { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+  .topbar-right { display: flex; gap: 8px; flex-wrap: wrap; }
+  .topbar-right button { padding: 7px 16px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn-add { background: var(--green); color: white; }
+  .btn-add:hover { background: #059669; }
+  .btn-std { background: var(--gray-800); color: var(--gray-300); border: 1px solid var(--gray-700) !important; }
+  .btn-std:hover { background: var(--gray-700); color: white; }
+  .btn-reset { background: transparent; color: var(--red); border: 1px solid var(--red) !important; }
+  .btn-reset:hover { background: var(--red); color: white; }
+
+  /* === BRAND LEGEND === */
+  .legend-bar { display: flex; align-items: center; gap: 16px; padding: 10px 28px; background: var(--white); border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--gray-700); }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 4px; }
+
+  /* === STATS === */
+  .stats-bar { display: flex; gap: 20px; padding: 12px 28px; background: var(--white); border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
+  .stat { font-size: 13px; color: var(--gray-500); }
+  .stat b { color: var(--gray-900); font-size: 16px; }
+
+  /* === FILTERS === */
+  .filter-bar { display: flex; gap: 6px; padding: 12px 28px; background: var(--white); border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 11px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+  .fbtn { padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--gray-200); background: var(--white); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; color: var(--gray-600); }
+  .fbtn:hover { border-color: var(--gray-400); }
+  .fbtn.active { color: white; border-color: transparent; }
+  .fbtn[data-f="all"].active { background: var(--gray-800); }
+  .fbtn[data-f="DG"].active { background: var(--dg-dark); }
+  .fbtn[data-f="NY"].active { background: var(--ny-dark); }
+  .fbtn[data-f="O&M"].active { background: var(--om); }
+  .fbtn[data-f="BIO"].active { background: var(--bio-dark); }
+  .fbtn[data-f="BKT"].active { background: var(--bkt-dark); }
+  .fbtn[data-f="gaps"].active { background: var(--red); }
+  .fbtn[data-f="ps"].active { background: var(--om); }
+  .filter-sep { width: 1px; height: 24px; background: var(--gray-200); margin: 0 6px; }
+  .search-box { padding: 6px 14px; border-radius: 8px; border: 1.5px solid var(--gray-200); font-size: 13px; width: 200px; outline: none; }
+  .search-box:focus { border-color: var(--gray-400); }
+
+  /* === MAIN TABLE === */
+  .table-wrap { padding: 16px 28px 120px; overflow-x: auto; max-height: calc(100vh - 200px); overflow-y: auto; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+  thead th { background: var(--gray-800); color: white; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 8px; text-align: center; position: sticky; top: 0; z-index: 50; border-bottom: 2px solid var(--gray-900); }
+  thead th:first-child { text-align: left; padding-left: 16px; min-width: 240px; }
+  thead th.brand-col-dg { background: var(--dg); color: var(--gray-900); }
+  thead th.brand-col-ny { background: var(--ny); color: var(--gray-900); }
+  thead th.brand-col-om { background: var(--om); color: white; }
+  thead th.brand-col-bio { background: var(--bio); color: white; }
+  thead th.brand-col-bkt { background: var(--bkt); color: white; }
+  thead th.deal-hdr { background: var(--gray-700); font-size: 9px; white-space: normal; word-break: break-word; min-width: 55px; max-width: 70px; line-height: 1.3; padding: 8px 4px; border-left: 2px solid var(--gray-600); }
+  thead th.ps-hdr { background: var(--om); color: white; font-size: 9px; min-width: 120px; white-space: normal; line-height: 1.3; }
+  thead th.custom-col-hdr { background: var(--gray-600); font-size: 9px; white-space: normal; word-break: break-word; min-width: 70px; max-width: 100px; line-height: 1.3; padding: 8px 4px; }
+
+  .sec-row td { font-weight: 700; font-size: 12px; padding: 10px 16px; letter-spacing: 0.3px; border: none; color: white; }
+  .sec-row .sec-count { font-weight: 400; opacity: 0.7; font-size: 11px; margin-left: 8px; }
+  .sec-dg td { background: var(--dg-dark); }
+  .sec-ny td { background: var(--ny-dark); }
+  .sec-om td { background: var(--om); }
+  .sec-full td { background: var(--gray-900); }
+  .sec-dgom td { background: linear-gradient(90deg, var(--dg-dark), var(--om)); }
+  .sec-nyom td { background: linear-gradient(90deg, var(--ny-dark), var(--om)); }
+  .sec-bkt td { background: var(--bkt-dark); }
+
+  tbody td { padding: 9px 8px; text-align: center; font-size: 13px; border-bottom: 1px solid var(--gray-100); background: var(--white); vertical-align: middle; }
+  tbody tr:hover td { background: var(--gray-50) !important; }
+  tbody tr.alt td { background: var(--gray-50); }
+  tbody tr.alt:hover td { background: var(--gray-100) !important; }
+  
+  .salon-name { text-align: left !important; padding-left: 16px !important; font-weight: 500; white-space: nowrap; cursor: pointer; }
+  .salon-name:hover { color: var(--om); }
+  .staff-cell { color: var(--gray-400); font-size: 12px; min-width: 50px; }
+
+  .brand-cell { min-width: 44px; cursor: pointer; user-select: none; transition: all 0.1s; }
+  .brand-cell:hover { opacity: 0.8; }
+  .brand-cell.has-dg { background: var(--dg) !important; }
+  .brand-cell.has-ny { background: var(--ny) !important; }
+  .brand-cell.has-om { background: var(--om-light) !important; }
+  .brand-cell.has-bio { background: var(--bio-light) !important; }
+  .brand-cell.has-bkt { background: var(--bkt-light) !important; }
+  .brand-cell.gap { background: var(--gray-300) !important; }
+  .brand-check { font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+  .brand-check.on-dg { color: #1E3A8A; }
+  .brand-check.on-ny { color: #4C1D95; }
+  .brand-check.on-om { color: var(--om); }
+  .brand-check.on-bio { color: var(--bio-dark); }
+  .brand-check.on-bkt { color: var(--bkt-dark); }
+  .brand-check.off { color: var(--gray-300); font-weight: 400; font-size: 11px; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; transition: all 0.12s; }
+  .badge:hover { transform: scale(1.05); }
+  .badge-yes { background: var(--green-light); color: #065F46; }
+  .badge-digital { background: var(--blue-light); color: #1E40AF; }
+  .badge-tbc { background: var(--amber-light); color: #92400E; }
+  .badge-empty { background: var(--no-outcome); color: var(--gray-500); }
+
+  .deal-cell { cursor: pointer; user-select: none; min-width: 70px; border-left: 1px solid var(--gray-100); }
+  .deal-cell:hover { opacity: 0.85; }
+  .deal-purchased { background: var(--green) !important; }
+  .deal-presented { background: var(--blue-light) !important; }
+  .deal-none { background: var(--no-outcome) !important; }
+  .deal-pip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .deal-pip.purchased { color: white; }
+  .deal-pip.presented { color: #1E40AF; }
+  .deal-pip.none { color: var(--gray-600); }
+
+  .ps-cell { min-width: 70px; border-left: 2px solid var(--om-mid); cursor: pointer; user-select: none; }
+  .ps-cell:hover { opacity: 0.85; }
+  .ps-purchased { background: var(--om) !important; }
+  .ps-presented { background: var(--green-light) !important; }
+  .ps-none { background: var(--no-outcome) !important; }
+  .ps-pip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .ps-pip.purchased { color: white; }
+  .ps-pip.presented { color: #065F46; }
+  .ps-pip.none { color: var(--gray-600); }
+
+  .custom-cell { min-width: 70px; cursor: pointer; user-select: none; font-size: 12px; border-left: 1px solid var(--gray-100); }
+  .custom-cell:hover { opacity: 0.85; }
+  .custom-val-yes { background: var(--green-light) !important; color: #065F46; font-weight: 600; }
+  .custom-val-no { background: var(--red-light) !important; color: var(--red); font-weight: 600; }
+  .custom-val-empty { background: var(--no-outcome) !important; color: var(--gray-500); }
+  .custom-val-text { color: var(--gray-700); font-weight: 500; }
+
+  .notes-cell { text-align: left !important; font-size: 12px; color: var(--gray-500); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; padding-left: 8px !important; }
+  .notes-cell:hover { color: var(--gray-800); }
+
+  /* === MODALS === */
+  .modal-bg { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.35); z-index: 200; align-items: center; justify-content: center; }
+  .modal-bg.show { display: flex; }
+  .modal { background: white; border-radius: 14px; padding: 24px; width: 92%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  .modal h3 { font-size: 17px; margin-bottom: 16px; color: var(--gray-900); }
+  .mf { margin-bottom: 14px; }
+  .mf label { display: block; font-size: 11px; font-weight: 700; color: var(--gray-500); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .mf input, .mf select, .mf textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 14px; outline: none; font-family: inherit; }
+  .mf input:focus, .mf select:focus, .mf textarea:focus { border-color: var(--gray-400); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+  .modal-actions button { padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+  .ma-cancel { background: var(--gray-100); color: var(--gray-600); }
+  .ma-save { background: var(--gray-900); color: white; }
+  .ma-delete { background: var(--red); color: white; }
+
+  .deal-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 8px; background: var(--gray-100); font-size: 12px; margin: 3px; font-weight: 500; }
+  .deal-tag .x { cursor: pointer; color: var(--gray-400); font-weight: 700; font-size: 14px; }
+  .deal-tag .x:hover { color: var(--red); }
+
+  .col-tag { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: var(--gray-50); border: 1px solid var(--gray-200); margin-bottom: 6px; }
+  .col-tag input { flex: 1; padding: 5px 8px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 13px; outline: none; font-family: inherit; }
+  .col-tag .x { cursor: pointer; color: var(--gray-400); font-weight: 700; font-size: 16px; padding: 2px 6px; border-radius: 4px; }
+  .col-tag .x:hover { color: var(--red); background: var(--red-light); }
+
+  .settings-section { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--gray-100); }
+  .settings-section:last-child { border-bottom: none; }
+  .settings-section-title { display: block; font-size: 11px; font-weight: 700; color: var(--gray-500); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .color-row input[type="color"] { width: 36px; height: 32px; border: 1px solid var(--gray-200); border-radius: 6px; cursor: pointer; padding: 2px; }
+  .color-row span.cr-label { font-size: 12px; color: var(--gray-600); flex: 1; }
+
+  /* === SUMMARY DASHBOARD === */
+  .summary { margin-top: 24px; padding: 24px; background: var(--white); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .summary h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--gray-900); }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .summary-card { padding: 16px; border-radius: 10px; background: var(--gray-50); border: 1px solid var(--gray-200); }
+  .summary-card h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-500); margin-bottom: 12px; }
+  .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--gray-100); }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { font-size: 13px; color: var(--gray-600); }
+  .summary-val { font-size: 15px; font-weight: 700; }
+  .summary-val.good { color: var(--green); }
+  .summary-val.warn { color: var(--amber); }
+  .summary-val.bad { color: var(--red); }
+  .summary-bar { height: 8px; border-radius: 4px; background: var(--gray-200); margin-top: 8px; overflow: hidden; }
+  .summary-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  .summary-pct { font-size: 12px; color: var(--gray-500); margin-top: 4px; text-align: right; }
+
+  @media (max-width: 768px) {
+    .topbar, .legend-bar, .stats-bar, .filter-bar, .table-wrap { padding-left: 16px; padding-right: 16px; }
+    .search-box { width: 140px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <h1>Salon Client Tracker</h1>
+    <p>Daily tracking · Fill the gaps · Close more deals</p>
+  </div>
+  <div class="topbar-right">
+    <button class="btn-add" onclick="openAddSalon()">+ Add Salon</button>
+    <button class="btn-std" onclick="openDealManager()">⚙ Deals</button>
+    <button class="btn-std" onclick="openColumnsModal()">📋 Columns</button>
+    <button class="btn-std" onclick="openSettings()">🎨 Customise</button>
+    <button class="btn-std" onclick="exportData()">↓ Export</button>
+    <button class="btn-std" onclick="document.getElementById('importFile').click()">↑ Import</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="btn-reset" onclick="if(confirm('Reset ALL data to original? Cannot be undone.')) { localStorage.removeItem('salonTrackerV6'); localStorage.removeItem('salonTrackerCustom'); location.reload(); }">Reset</button>
+  </div>
+</div>
+
+<div class="legend-bar">
+  <span style="font-size:11px; font-weight:700; color:var(--gray-400); text-transform:uppercase; letter-spacing:0.5px;">Brands:</span>
+  <div class="legend-item" id="leg-dg"><div class="legend-swatch" style="background:var(--dg)"></div>Dun Gud</div>
+  <div class="legend-item" id="leg-ny"><div class="legend-swatch" style="background:var(--ny)"></div>Nine Yards</div>
+  <div class="legend-item" id="leg-om"><div class="legend-swatch" style="background:var(--om)"></div>O&M</div>
+  <div class="legend-item" id="leg-bio"><div class="legend-swatch" style="background:var(--bio)"></div>BioTech</div>
+  <div class="legend-item" id="leg-bkt"><div class="legend-swatch" style="background:var(--bkt)"></div>BKT</div>
+  <div style="flex:1"></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--green-light); border:1px solid var(--green);"></div>Brand Name = Stockist</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--blue-light); border:1px solid #93C5FD;"></div>D = Digital</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--amber-light); border:1px solid var(--amber);"></div>TBC</div>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="filter-bar">
+  <span class="filter-label">Show:</span>
+  <button class="fbtn active" data-f="all" onclick="setFilter('all',this)">All</button>
+  <button class="fbtn" data-f="DG" onclick="setFilter('DG',this)">Dun Gud</button>
+  <button class="fbtn" data-f="NY" onclick="setFilter('NY',this)">Nine Yards</button>
+  <button class="fbtn" data-f="O&M" onclick="setFilter('O&M',this)">O&M</button>
+  <button class="fbtn" data-f="BIO" onclick="setFilter('BIO',this)">BioTech</button>
+  <button class="fbtn" data-f="BKT" onclick="setFilter('BKT',this)">BKT</button>
+  <div class="filter-sep"></div>
+  <button class="fbtn" data-f="gaps" onclick="setFilter('gaps',this)">🔴 Gaps</button>
+  <button class="fbtn" data-f="ps" onclick="setFilter('ps',this)">📋 PS Targets</button>
+  <div class="filter-sep"></div>
+  <input type="text" class="search-box" placeholder="Search salons..." oninput="doSearch(this.value)">
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead id="tHead"></thead>
+    <tbody id="tBody"></tbody>
+  </table>
+  <div id="summary" class="summary"></div>
+</div>
+
+<!-- Salon Modal -->
+<div class="modal-bg" id="salonModal">
+  <div class="modal">
+    <h3 id="smTitle">Add Salon</h3>
+    <div class="mf"><label>Salon Name</label><input type="text" id="smName" placeholder="e.g. C00722 Scizzor Lounge"></div>
+    <div class="mf"><label>Staff Size</label>
+      <select id="smStaff"><option value="SOLO">Solo</option><option value="1-2">1-2</option><option value="2-3">2-3</option><option value="4+">4+</option><option value="10+">10+</option></select>
+    </div>
+    <div class="mf"><label>Section</label><select id="smSection"></select></div>
+    <div class="mf"><label>Notes</label><textarea id="smNotes" rows="2" placeholder="Hours, reminders, etc."></textarea></div>
+    <div class="modal-actions">
+      <button class="ma-delete" id="smDel" style="display:none;margin-right:auto;" onclick="delSalon()">Delete</button>
+      <button class="ma-cancel" onclick="closeSM()">Cancel</button>
+      <button class="ma-save" onclick="saveSalon()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deal Manager Modal -->
+<div class="modal-bg" id="dealModal">
+  <div class="modal">
+    <h3>Manage Deals / NPD</h3>
+    <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">Add or remove active deals. Update these when new NPD launches.</p>
+    <div id="dealList"></div>
+    <div class="mf" style="margin-top:14px;">
+      <label>Add New Deal</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="newDealInput" placeholder="e.g. Spring Promo 2026">
+        <button class="ma-save" onclick="addDeal()" style="white-space:nowrap;">+ Add</button>
+      </div>
+    </div>
+    <div class="modal-actions"><button class="ma-cancel" onclick="closeDM()">Done</button></div>
+  </div>
+</div>
+
+<!-- Columns Modal -->
+<div class="modal-bg" id="columnsModal">
+  <div class="modal">
+    <h3>📋 Custom Columns</h3>
+    <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">Add custom columns that appear after PS and before Notes. Click cells to cycle Yes → No → blank, or double-click to type free text.</p>
+    <div id="columnList"></div>
+    <div class="mf" style="margin-top:14px;">
+      <label>Add New Column</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="newColInput" placeholder="e.g. Ordered This Month">
+        <button class="ma-save" onclick="addCustomColumn()" style="white-space:nowrap;">+ Add</button>
+      </div>
+    </div>
+    <div class="modal-actions"><button class="ma-cancel" onclick="closeColumnsModal()">Done</button></div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-bg" id="settingsModal">
+  <div class="modal" style="max-width:600px;max-height:85vh;overflow-y:auto;">
+    <h3>🎨 Customise Tracker</h3>
+    <p style="font-size:12px;color:var(--gray-500);margin-bottom:18px;">Change brand names, colours, section header colours, column header colours, status colours, and more. Changes save instantly.</p>
+    
+    <div class="settings-section">
+      <span class="settings-section-title">Brand Names & Colours</span>
+      <div id="settingsBrands"></div>
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title">Section Header Colours</span>
+      <div id="settingsSectionColors"></div>
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title">Column Header Colours</span>
+      <div id="settingsColHeaderColors"></div>
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title">Status Colours</span>
+      <div id="settingsStatusColors"></div>
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title">Column Header Labels</span>
+      <div id="settingsHeaders"></div>
+      <p style="font-size:11px;color:var(--gray-400);margin-top:6px;">Deal columns can be renamed via the ⚙ Deals button. New deals added there will appear as columns automatically.</p>
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title">Gap Cell Colour</span>
+      <div class="color-row">
+        <input type="color" id="settingsGapColor" onchange="updateGapColor(this.value)">
+        <span class="cr-label">Colour shown when a salon doesn't stock a brand</span>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title">No-Outcome Cell Colour</span>
+      <div class="color-row">
+        <input type="color" id="settingsNoOutcomeColor" onchange="updateNoOutcomeColor(this.value)">
+        <span class="cr-label">Colour for deal / PS / rewards cells with no outcome yet</span>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title">Section Names</span>
+      <div id="settingsSections"></div>
+    </div>
+
+    <div class="settings-section" id="settingsCustomColsSection" style="display:none;">
+      <span class="settings-section-title">Custom Column Colours</span>
+      <div id="settingsCustomCols"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="ma-cancel" onclick="closeSettings()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notes Modal -->
+<div class="modal-bg" id="notesModal">
+  <div class="modal">
+    <h3 id="nmTitle">Notes</h3>
+    <div class="mf"><textarea id="nmText" rows="4" placeholder="Add notes..."></textarea></div>
+    <div class="modal-actions">
+      <button class="ma-cancel" onclick="closeNM()">Cancel</button>
+      <button class="ma-save" onclick="saveNotes()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Cell Edit Modal (for free-text entry) -->
+<div class="modal-bg" id="customCellModal">
+  <div class="modal" style="max-width:360px;">
+    <h3 id="ccmTitle">Edit Value</h3>
+    <div class="mf">
+      <label>Value (or use quick buttons below)</label>
+      <input type="text" id="ccmValue" placeholder="Type a value or leave blank">
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button class="ma-save" style="font-size:11px;padding:6px 14px;background:var(--green);" onclick="document.getElementById('ccmValue').value='Yes'">Yes</button>
+      <button class="ma-save" style="font-size:11px;padding:6px 14px;background:var(--red);" onclick="document.getElementById('ccmValue').value='No'">No</button>
+      <button class="ma-save" style="font-size:11px;padding:6px 14px;background:var(--gray-400);" onclick="document.getElementById('ccmValue').value=''">Clear</button>
+    </div>
+    <div class="modal-actions">
+      <button class="ma-cancel" onclick="closeCCM()">Cancel</button>
+      <button class="ma-save" onclick="saveCCM()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BRANDS = ['DG','NY','O&M','BIO','BKT'];
+const BRAND_CSS = { DG:'dg', NY:'ny', 'O&M':'om', BIO:'bio', BKT:'bkt' };
+
+const DEFAULT = {
+  deals: ["DG BERET DEAL 20","BioTech NPD","NY DEAL"],
+  customColumns: [],
+  sections: [
+    {id:"dg",name:"DUN GUD ONLY",css:"sec-dg"},
+    {id:"ny",name:"NINE YARDS ONLY",css:"sec-ny"},
+    {id:"om",name:"O&M ONLY",css:"sec-om"},
+    {id:"full",name:"FULL CONCEPT HBC",css:"sec-full"},
+    {id:"dgom",name:"DUN GUD / O&M",css:"sec-dgom"},
+    {id:"nyom",name:"NINE YARDS / O&M",css:"sec-nyom"},
+    {id:"bkt",name:"BKT ONLY",css:"sec-bkt"}
+  ],
+  salons: [
+    {id:1,name:"Pipsqueek In Saigon Stepney",staff:"4+",section:"dg",brands:{DG:1,BIO:1},edu:"YES",rewards:"",deals:{d0:"$",d1:"$"},ps:"",notes:"",custom:{}},
+    {id:2,name:"Jade Hairs (CLOSED MONDAY)",staff:"SOLO",section:"dg",brands:{DG:1,BIO:1},edu:"DIGITAL",rewards:"",deals:{d0:"$",d1:"P"},ps:"purchased",notes:"",custom:{}},
+    {id:3,name:"Just Peachy Hairdressing",staff:"1-2",section:"dg",brands:{DG:1},edu:"YES",rewards:"",deals:{d0:"P",d1:"P"},ps:"",notes:"",custom:{}},
+    {id:4,name:"Thirteen (closed Mon / Tue)",staff:"1-2",section:"dg",brands:{DG:1},edu:"",rewards:"",deals:{d1:"P",d0:"P"},ps:"",notes:"",custom:{}},
+    {id:5,name:"Jacky Boy",staff:"2-3",section:"dg",brands:{DG:1,BIO:1},edu:"YES",rewards:"",deals:{d1:"P",d0:"P"},ps:"",notes:"",custom:{}},
+    {id:6,name:"Fluffee (Open 10-4pm)",staff:"SOLO",section:"dg",brands:{DG:1},edu:"DIGITAL",rewards:"",deals:{d0:"P",d1:"P"},ps:"",notes:"",custom:{}},
+    {id:7,name:"Mane & Marsden",staff:"SOLO",section:"dg",brands:{DG:1},edu:"",rewards:"",deals:{d0:"P",d1:"P"},ps:"",notes:"",custom:{}},
+    {id:8,name:"Kabuki Hair",staff:"4+",section:"ny",brands:{NY:1,BKT:1},edu:"YES",rewards:"",deals:{d2:"P",d1:"P",d0:"P"},ps:"",notes:"",custom:{}},
+    {id:9,name:"ALLURE",staff:"10+",section:"om",brands:{"O&M":1,BKT:1},edu:"",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:10,name:"C00590 Oria Hair Studio",staff:"4+",section:"om",brands:{"O&M":1,BIO:1,BKT:1},edu:"YES",rewards:"",deals:{d1:"P"},ps:"purchased",notes:"",custom:{}},
+    {id:11,name:"LILA ROSE",staff:"2-3",section:"om",brands:{"O&M":1},edu:"YES",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:12,name:"C13587 Where She Goes",staff:"2-3",section:"om",brands:{"O&M":1,BIO:1},edu:"YES",rewards:"",deals:{d1:"$"},ps:"purchased",notes:"",custom:{}},
+    {id:13,name:"C06679 GLOW HAIR AND MAKEUP BY ROCHELLE",staff:"1-2",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"YES",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:14,name:"C15990 Denika Santillo Hair Artistry",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"YES",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:15,name:"C00203 Del & May Hair Studio",staff:"1-2",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:16,name:"C12022 Asri Hair Salon",staff:"1-2",section:"om",brands:{"O&M":1,BIO:1},edu:"YES",rewards:"YES",deals:{d1:"P"},ps:"purchased",notes:"",custom:{}},
+    {id:17,name:"C06289 Kristy Harrison",staff:"2-3",section:"om",brands:{"O&M":1,BIO:1},edu:"YES",rewards:"",deals:{d1:"$"},ps:"purchased",notes:"",custom:{}},
+    {id:18,name:"C05416 Udara",staff:"2-3",section:"om",brands:{"O&M":1},edu:"YES",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:19,name:"C08429 The Meraki Lounge",staff:"1-2",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:20,name:"C16798 Serenity Hair and Beauty Lounge",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:21,name:"C18755 Hairhouse Marion",staff:"",section:"om",brands:{"O&M":1},edu:"YES",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:22,name:"C11286 Hair By Fiona Marshall",staff:"SOLO",section:"om",brands:{"O&M":1,BIO:1,BKT:1},edu:"YES",rewards:"",deals:{d1:"P"},ps:"",notes:"",custom:{}},
+    {id:23,name:"C20633 Hair House West Lakes",staff:"",section:"om",brands:{"O&M":1},edu:"YES",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:24,name:"C23070 Full Circle Hair Society",staff:"4+",section:"om",brands:{"O&M":1},edu:"YES",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:25,name:"C16523 Bernadette Kelly",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:26,name:"C11583 Talisha Lynch",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"YES",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:27,name:"C15674 The Little Hair Parlour",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:28,name:"C17851 Stone Salon",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:29,name:"C11743 GEORGIA RAÈ HAIR",staff:"1-2",section:"om",brands:{"O&M":1},edu:"YES",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:30,name:"C20436 Style Hut",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:31,name:"C01944 Rebecca Rosa Hair (Ensemble Salon)",staff:"SOLO",section:"om",brands:{"O&M":1,BKT:1},edu:"YES",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:32,name:"NT C00176 Comb Culture",staff:"4+",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"YES",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:33,name:"NT C15956 S & M Hair",staff:"2-3",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"TBC",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:34,name:"NT C00925 Hair Poetry",staff:"4+",section:"om",brands:{"O&M":1,BKT:1},edu:"DIGITAL",rewards:"YES",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:35,name:"NT C13286 SCALPT & CO",staff:"4+",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:36,name:"NT C12163 BeyondBlonde by Denise Mayberg",staff:"1-2",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:37,name:"NT C00780 Studio 8",staff:"1-2",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:38,name:"NT C08708 Intricate Hair",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:39,name:"NT C12596 Browz & Cutz",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:40,name:"NT C15113 Salt Hair Artistry",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:41,name:"NT C00577 Nyuba Hair",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"DIGITAL",rewards:"",deals:{},ps:"purchased",notes:"",custom:{}},
+    {id:42,name:"C00722 Scizzor Lounge",staff:"4+",section:"full",brands:{DG:1,NY:1,"O&M":1,BIO:1},edu:"YES",rewards:"YES",deals:{d1:"P",d0:"P",d2:"P"},ps:"purchased",notes:"",custom:{}},
+    {id:43,name:"C06854 Aveta Hair and Body",staff:"2-3",section:"full",brands:{DG:1,NY:1,"O&M":1,BIO:1,BKT:1},edu:"YES",rewards:"TBC",deals:{d1:"P",d0:"$",d2:"$"},ps:"purchased",notes:"",custom:{}},
+    {id:44,name:"C00194 Dare Hair",staff:"4+",section:"full",brands:{DG:1,NY:1,"O&M":1,BIO:1,BKT:1},edu:"YES",rewards:"YES",deals:{d1:"P",d0:"P",d2:"P"},ps:"purchased",notes:"",custom:{}},
+    {id:45,name:"C12158 SALTY BLONDES",staff:"SOLO",section:"full",brands:{DG:1,NY:1,"O&M":1,BIO:1},edu:"YES",rewards:"",deals:{d1:"P",d0:"P",d2:"P"},ps:"presented",notes:"",custom:{}},
+    {id:46,name:"C12792 Daisy & Co The Salon",staff:"4+",section:"dgom",brands:{DG:1,"O&M":1,BIO:1,NY:1},edu:"YES",rewards:"YES",deals:{d0:"$",d1:"P",d2:"P"},ps:"purchased",notes:"",custom:{}},
+    {id:47,name:"C01850 Hair Crush @ The Beach",staff:"SOLO",section:"dgom",brands:{DG:1,"O&M":1},edu:"",rewards:"",deals:{d0:"P",d1:"P"},ps:"presented",notes:"",custom:{}},
+    {id:48,name:"C03850 The Collective Hair Bar",staff:"2-3",section:"dgom",brands:{DG:1,"O&M":1,BIO:1,BKT:1},edu:"YES",rewards:"TBC",deals:{d1:"P",d0:"P"},ps:"presented",notes:"",custom:{}},
+    {id:49,name:"C09803 Hairstablishment",staff:"1-2",section:"dgom",brands:{DG:1,"O&M":1,BIO:1},edu:"YES",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:50,name:"C01166 Muse The Hair Room",staff:"2-3",section:"dgom",brands:{DG:1,"O&M":1,BIO:1,BKT:1},edu:"YES",rewards:"",deals:{d1:"$",d0:"P"},ps:"presented",notes:"",custom:{}},
+    {id:51,name:"C11589 Hair by Ellie Clancy",staff:"SOLO",section:"dgom",brands:{DG:1,"O&M":1},edu:"YES",rewards:"",deals:{d0:"P"},ps:"presented",notes:"",custom:{}},
+    {id:52,name:"C18410 Emily Allegretto",staff:"SOLO",section:"dgom",brands:{DG:1,"O&M":1},edu:"",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:53,name:"C08430 Benny Mae. The Salon",staff:"SOLO",section:"dgom",brands:{DG:1,"O&M":1,BIO:1,BKT:1},edu:"YES",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:54,name:"C23275 BYDEMIROSE",staff:"SOLO",section:"dgom",brands:{DG:1,"O&M":1},edu:"YES",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:55,name:"C00958 Salon Super Store",staff:"4+",section:"nyom",brands:{NY:1,"O&M":1},edu:"",rewards:"",deals:{},ps:"presented",notes:"",custom:{}},
+    {id:56,name:"C03697 Emily Lauren Hair",staff:"SOLO",section:"nyom",brands:{NY:1,"O&M":1,BIO:1,BKT:1},edu:"YES",rewards:"",deals:{d1:"P",d0:"P",d2:"$"},ps:"purchased",notes:"",custom:{}},
+    {id:57,name:"Khrome Hair",staff:"",section:"bkt",brands:{BKT:1},edu:"",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:58,name:"Glamazon Hair NT",staff:"",section:"bkt",brands:{BKT:1},edu:"",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:59,name:"Lavish Hair Studio",staff:"",section:"bkt",brands:{BKT:1},edu:"",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:60,name:"Hair on Grange",staff:"",section:"bkt",brands:{BKT:1},edu:"",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:100,name:"KAYLA JAY CO",staff:"SOLO",section:"dgom",brands:{DG:1,"O&M":1},edu:"",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:101,name:"Michelle Hair Artistry",staff:"SOLO",section:"bkt",brands:{BKT:1},edu:"",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:102,name:"Up In The Hair in Henley",staff:"SOLO",section:"bkt",brands:{BKT:1},edu:"",rewards:"",deals:{},ps:"",notes:"",custom:{}},
+    {id:103,name:"Honey Hair Co",staff:"SOLO",section:"om",brands:{"O&M":1},edu:"",rewards:"",deals:{},ps:"",notes:"",custom:{}}
+  ]
+};
+
+let D, filter='all', search='', editId=null, notesId=null, nid=100;
+let ccmSalonId=null, ccmColId=null;
+
+function init(){
+  const s=localStorage.getItem('salonTrackerV6');
+  D=s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULT));
+  // Ensure all salons have required fields
+  D.salons.forEach(s=>{
+    if(!s.deals) s.deals={};
+    if(s.ps===undefined) s.ps='';
+    if(!s.custom) s.custom={};
+  });
+  if(!D.customColumns) D.customColumns=[];
+  nid=Math.max(...D.salons.map(s=>s.id),99)+1;
+  applyCustomCSS();
+  render();
+}
+function save(){localStorage.setItem('salonTrackerV6',JSON.stringify(D));}
+function find(id){return D.salons.find(s=>s.id===id);}
+
+function render(){renderStats();renderHead();renderBody();renderSummary();}
+
+// =============================================
+// CUSTOMISATION SYSTEM
+// =============================================
+const DEFAULT_BRAND_COLORS = {DG:'#93C5FD',NY:'#C4B5FD','O&M':'#E91E8A',BIO:'#F87171',BKT:'#60A5FA'};
+const DEFAULT_BRAND_LABELS = {DG:'Dun Gud',NY:'Nine Yards','O&M':'O&M',BIO:'BioTech',BKT:'BKT'};
+
+const DEFAULT_SECTION_COLORS = {
+  dg:'#3B82F6', ny:'#8B5CF6', om:'#E91E8A', full:'#111827',
+  dgom_left:'#3B82F6', dgom_right:'#E91E8A',
+  nyom_left:'#8B5CF6', nyom_right:'#E91E8A',
+  bkt:'#2563EB'
+};
+
+const DEFAULT_COL_HEADER_COLORS = {
+  deals:'#374151', ps:'#E91E8A', rewards:'#1F2937'
+};
+
+const DEFAULT_STATUS_COLORS = {
+  purchased:'#10B981', presented:'#DBEAFE', noOutcome:'#D1D5DB'
+};
+
+function getCustom(){
+  const s=localStorage.getItem('salonTrackerCustom');
+  const def={
+    brandColors:{...DEFAULT_BRAND_COLORS},
+    brandLabels:{...DEFAULT_BRAND_LABELS},
+    gapColor:'#D1D5DB',
+    noOutcomeColor:'#D1D5DB',
+    sectionNames:{},
+    sectionColors:{...DEFAULT_SECTION_COLORS},
+    colHeaderColors:{...DEFAULT_COL_HEADER_COLORS},
+    statusColors:{...DEFAULT_STATUS_COLORS},
+    rewardsLabel:'Rewards',
+    psLabel:'PS S+C Target',
+    dealLabels:{},
+    customColColors:{}
+  };
+  if(s){
+    const p=JSON.parse(s);
+    // Merge defaults with saved
+    return {
+      brandColors:{...def.brandColors,...(p.brandColors||{})},
+      brandLabels:{...def.brandLabels,...(p.brandLabels||{})},
+      gapColor:p.gapColor||def.gapColor,
+      noOutcomeColor:p.noOutcomeColor||def.noOutcomeColor,
+      sectionNames:p.sectionNames||{},
+      sectionColors:{...def.sectionColors,...(p.sectionColors||{})},
+      colHeaderColors:{...def.colHeaderColors,...(p.colHeaderColors||{})},
+      statusColors:{...def.statusColors,...(p.statusColors||{})},
+      rewardsLabel:p.rewardsLabel||def.rewardsLabel,
+      psLabel:p.psLabel||def.psLabel,
+      dealLabels:p.dealLabels||{},
+      customColColors:p.customColColors||{}
+    };
+  }
+  return def;
+}
+function saveCustom(c){localStorage.setItem('salonTrackerCustom',JSON.stringify(c));}
+
+function applyCustomCSS(){
+  const c=getCustom();
+  const r=document.documentElement;
+  // Brand colors
+  const map={DG:'--dg',NY:'--ny','O&M':'--om',BIO:'--bio',BKT:'--bkt'};
+  Object.keys(map).forEach(b=>{
+    if(c.brandColors[b]) r.style.setProperty(map[b],c.brandColors[b]);
+  });
+  // No-outcome color
+  r.style.setProperty('--no-outcome',c.noOutcomeColor||'#D1D5DB');
+  // Section names
+  if(c.sectionNames&&D){
+    D.sections.forEach(sec=>{if(c.sectionNames[sec.id])sec.name=c.sectionNames[sec.id];});
+  }
+}
+
+// =============================================
+// RENDER FUNCTIONS
+// =============================================
+function renderStats(){
+  const t=D.salons.length;
+  let h=`<div class="stat"><b>${t}</b> salons</div>`;
+  BRANDS.forEach(b=>{
+    const c=D.salons.filter(s=>s.brands[b]).length;
+    h+=`<div class="stat"><b>${c}</b> ${b}</div>`;
+  });
+  const psSold=D.salons.filter(s=>s.ps==='purchased').length;
+  const psPres=D.salons.filter(s=>s.ps==='presented').length;
+  const psLeft=D.salons.length-psSold-psPres;
+  h+=`<div class="stat" style="color:var(--om)">PS: <b>${psSold}</b> sold · <b>${psPres}</b> presented · <b>${psLeft}</b> to go</div>`;
+  document.getElementById('statsBar').innerHTML=h;
+}
+
+function renderHead(){
+  const c=getCustom();
+  const dealBg=c.colHeaderColors.deals||DEFAULT_COL_HEADER_COLORS.deals;
+  const psBg=c.colHeaderColors.ps||DEFAULT_COL_HEADER_COLORS.ps;
+  const rewBg=c.colHeaderColors.rewards||DEFAULT_COL_HEADER_COLORS.rewards;
+  
+  let h='<tr><th>Salon</th><th>Staff</th>';
+  BRANDS.forEach(b=>h+=`<th class="brand-col-${BRAND_CSS[b]}">${c.brandLabels[b]||b}</th>`);
+  h+=`<th class="rewards-hdr" style="background:${rewBg};color:${textColorFor(rewBg)}">${c.rewardsLabel||'Rewards'}</th>`;
+  D.deals.forEach((d,i)=>{
+    const label=c.dealLabels['d'+i]||d;
+    h+=`<th class="deal-hdr" style="background:${dealBg};color:${textColorFor(dealBg)};border-left:2px solid ${lightenColor(dealBg,0.2)}" title="${label}">${label}</th>`;
+  });
+  h+=`<th class="ps-hdr" style="background:${psBg};color:${textColorFor(psBg)}">${c.psLabel||'PS S+C Target'}</th>`;
+  // Custom columns
+  D.customColumns.forEach(col=>{
+    const colColor=c.customColColors[col.id]||'#4B5563';
+    h+=`<th class="custom-col-hdr" style="background:${colColor};color:${textColorFor(colColor)}" title="${col.name}">${col.name}</th>`;
+  });
+  h+='<th>Notes</th></tr>';
+  document.getElementById('tHead').innerHTML=h;
+}
+
+function renderBody(){
+  const c=getCustom();
+  let h='';
+  const list=getFiltered();
+  const colCount=7+D.deals.length+1+D.customColumns.length;
+  
+  D.sections.forEach(sec=>{
+    const rows=list.filter(s=>s.section===sec.id);
+    if(!rows.length && filter!=='all') return;
+    const total=D.salons.filter(s=>s.section===sec.id).length;
+    
+    // Section row with custom color
+    let secStyle='';
+    const sc=c.sectionColors||{};
+    if(sec.id==='dgom'){
+      const l=sc.dgom_left||DEFAULT_SECTION_COLORS.dgom_left;
+      const r=sc.dgom_right||DEFAULT_SECTION_COLORS.dgom_right;
+      secStyle=`background:linear-gradient(90deg,${l},${r})`;
+    } else if(sec.id==='nyom'){
+      const l=sc.nyom_left||DEFAULT_SECTION_COLORS.nyom_left;
+      const r=sc.nyom_right||DEFAULT_SECTION_COLORS.nyom_right;
+      secStyle=`background:linear-gradient(90deg,${l},${r})`;
+    } else {
+      const bg=sc[sec.id]||DEFAULT_SECTION_COLORS[sec.id]||'#374151';
+      secStyle=`background:${bg};color:${textColorFor(bg)}`;
+    }
+    
+    h+=`<tr class="sec-row"><td colspan="${colCount}" style="${secStyle}">${sec.name}<span class="sec-count">${rows.length}${rows.length!==total?'/'+total:''}</span></td></tr>`;
+    rows.forEach((s,i)=>h+=salonRow(s,i%2===1,c));
+  });
+  document.getElementById('tBody').innerHTML=h;
+  
+  // Apply gap color
+  document.querySelectorAll('.brand-cell.gap').forEach(el=>{el.style.background=c.gapColor;});
+}
+
+function salonRow(s,alt,c){
+  const noOutcome=c.noOutcomeColor||'#D1D5DB';
+  const statusPurchased=c.statusColors.purchased||'#10B981';
+  const statusPresented=c.statusColors.presented||'#DBEAFE';
+  
+  let h=`<tr class="${alt?'alt':''}" data-id="${s.id}">`;
+  h+=`<td class="salon-name" ondblclick="openEdit(${s.id})">${s.name}</td>`;
+  h+=`<td class="staff-cell">${s.staff||'—'}</td>`;
+  BRANDS.forEach(b=>{
+    const on=!!s.brands[b];
+    const cls=BRAND_CSS[b];
+    h+=`<td class="brand-cell ${on?'has-'+cls:'gap'}" onclick="togBrand(${s.id},'${b}')"><span class="brand-check ${on?'on-'+cls:'off'}">${on?b:''}</span></td>`;
+  });
+  // Rewards — no outcome = grey
+  const rC=s.rewards==='YES'?'badge-yes':s.rewards==='TBC'?'badge-tbc':'badge-empty';
+  const rT=s.rewards==='YES'?'✓ Yes':s.rewards==='TBC'?'TBC':'—';
+  h+=`<td><span class="badge ${rC}" onclick="cycleRew(${s.id})">${rT}</span></td>`;
+  // Deals — no outcome = grey
+  D.deals.forEach((d,i)=>{
+    const k='d'+i;
+    const v=s.deals[k]||'';
+    let cellBg, txtColor;
+    if(v==='$'){ cellBg=statusPurchased; txtColor='white'; }
+    else if(v==='P'){ cellBg=statusPresented; txtColor='#1E40AF'; }
+    else { cellBg=noOutcome; txtColor=textColorFor(noOutcome); }
+    const txt=v==='$'?'✓ Sold':v==='P'?'Presented':'—';
+    h+=`<td class="deal-cell" style="background:${cellBg} !important" onclick="cycleDeal(${s.id},'${k}')"><span class="deal-pip" style="color:${txtColor}">${txt}</span></td>`;
+  });
+  // PS — no outcome = grey
+  const psV=s.ps||'';
+  let psBg, psTxtColor;
+  if(psV==='purchased'){ psBg=c.colHeaderColors.ps||'#E91E8A'; psTxtColor='white'; }
+  else if(psV==='presented'){ psBg='var(--green-light)'; psTxtColor='#065F46'; }
+  else { psBg=noOutcome; psTxtColor=textColorFor(noOutcome); }
+  const psTxt=psV==='purchased'?'✓ Sold':psV==='presented'?'Presented':'—';
+  h+=`<td class="ps-cell" style="background:${psBg} !important" onclick="cyclePS(${s.id})"><span class="ps-pip" style="color:${psTxtColor}">${psTxt}</span></td>`;
+  // Custom columns
+  D.customColumns.forEach(col=>{
+    const val=(s.custom&&s.custom[col.id])||'';
+    let cellCls='custom-val-empty';
+    if(val.toLowerCase()==='yes') cellCls='custom-val-yes';
+    else if(val.toLowerCase()==='no') cellCls='custom-val-no';
+    else if(val) cellCls='custom-val-text';
+    h+=`<td class="custom-cell ${cellCls}" onclick="cycleCustom(${s.id},'${col.id}')" ondblclick="openCustomCellEdit(${s.id},'${col.id}',event)">${val||'—'}</td>`;
+  });
+  // Notes
+  h+=`<td class="notes-cell" onclick="openNotes(${s.id})" title="${(s.notes||'Click to add').replace(/"/g,'&quot;')}">${s.notes||''}</td>`;
+  h+='</tr>';
+  return h;
+}
+
+// =============================================
+// SUMMARY DASHBOARD
+// =============================================
+function renderSummary(){
+  const t=D.salons.length;
+  const brandColors={DG:'var(--dg-dark)',NY:'var(--ny-dark)','O&M':'var(--om)',BIO:'var(--bio-dark)',BKT:'var(--bkt-dark)'};
+  
+  const brandCounts={};
+  BRANDS.forEach(b=>{ brandCounts[b]=D.salons.filter(s=>s.brands[b]).length; });
+  
+  function dealBrand(name){
+    const n=name.toUpperCase();
+    if(n.includes('DG')||n.includes('DUN GUD')||n.includes('BERET')) return 'DG';
+    if(n.includes('BIO')) return 'BIO';
+    if(n.includes('NY')||n.includes('NINE YARD')) return 'NY';
+    if(n.includes('BKT')) return 'BKT';
+    if(n.includes('O&M')||n.includes('O+M')) return 'O&M';
+    return null;
+  }
+  
+  const omSalons=D.salons.filter(s=>s.brands['O&M']);
+  const omCount=omSalons.length;
+  const psSold=omSalons.filter(s=>s.ps==='purchased').length;
+  const psPres=omSalons.filter(s=>s.ps==='presented').length;
+  const psNone=omCount-psSold-psPres;
+  const psPct=omCount?Math.round(psSold/omCount*100):0;
+  const psTouchPct=omCount?Math.round((psSold+psPres)/omCount*100):0;
+  const rewYes=omSalons.filter(s=>s.rewards==='YES').length;
+  const rewTbc=omSalons.filter(s=>s.rewards==='TBC').length;
+  const rewNone=omCount-rewYes-rewTbc;
+  const rewPct=omCount?Math.round(rewYes/omCount*100):0;
+  
+  let h='';
+  
+  // Brand Penetration
+  h+=`<div style="margin-bottom:24px">
+    <h2 style="font-size:16px;font-weight:700;color:var(--gray-900);margin-bottom:14px;">📊 Brand Penetration</h2>
+    <div class="summary-grid">`;
+  BRANDS.forEach(b=>{
+    const count=brandCounts[b];
+    const pct=Math.round(count/t*100);
+    const gap=t-count;
+    h+=`<div class="summary-card" style="border-left:4px solid ${brandColors[b]}">
+      <h3 style="color:${brandColors[b]}">${b} <span style="float:right;font-size:20px;font-weight:800">${count}<span style="font-size:13px;font-weight:400;color:var(--gray-400)">/${t}</span></span></h3>
+      <div class="summary-bar"><div class="summary-bar-fill" style="width:${pct}%;background:${brandColors[b]}"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span class="summary-pct" style="text-align:left">${pct}% penetration</span>
+        <span style="font-size:12px;color:var(--red);font-weight:600">${gap} gaps</span>
+      </div>
+    </div>`;
+  });
+  h+=`</div></div>`;
+  
+  // Deals / NPD
+  h+=`<div style="margin-bottom:24px">
+    <h2 style="font-size:16px;font-weight:700;color:var(--gray-900);margin-bottom:14px;">🎯 Deals / NPD Progress</h2>
+    <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">Numbers based on salons that stock the relevant brand</p>
+    <div class="summary-grid">`;
+  D.deals.forEach((name,i)=>{
+    const k='d'+i;
+    const brand=dealBrand(name);
+    const pool=brand?D.salons.filter(s=>s.brands[brand]):D.salons;
+    const poolCount=pool.length;
+    const sold=pool.filter(s=>s.deals[k]==='$').length;
+    const pres=pool.filter(s=>s.deals[k]==='P').length;
+    const none=poolCount-sold-pres;
+    const soldPct=poolCount?Math.round(sold/poolCount*100):0;
+    const presPct=poolCount?Math.round(pres/poolCount*100):0;
+    const touchPct=poolCount?Math.round((sold+pres)/poolCount*100):0;
+    const color=brand?brandColors[brand]:'var(--gray-700)';
+    const brandLabel=brand?`${brand} clients`:'All salons';
+    h+=`<div class="summary-card" style="border-left:4px solid ${color}">
+      <h3>${name}</h3>
+      <div style="font-size:11px;color:var(--gray-400);margin-bottom:10px">Targeting: ${poolCount} ${brandLabel}</div>
+      <div class="summary-row"><span class="summary-label">✅ Purchased</span><span class="summary-val good">${sold}<span style="font-size:11px;color:var(--gray-400)">/${poolCount} (${soldPct}%)</span></span></div>
+      <div class="summary-row"><span class="summary-label">📋 Presented</span><span class="summary-val" style="color:#1E40AF">${pres}<span style="font-size:11px;color:var(--gray-400)">/${poolCount} (${presPct}%)</span></span></div>
+      <div class="summary-row"><span class="summary-label">❌ Not yet</span><span class="summary-val bad">${none}<span style="font-size:11px;color:var(--gray-400)">/${poolCount}</span></span></div>
+      <div class="summary-bar" style="margin-top:10px">
+        <div class="summary-bar-fill" style="width:${soldPct}%;background:var(--green);display:inline-block;float:left"></div>
+        <div class="summary-bar-fill" style="width:${presPct}%;background:var(--blue-light);display:inline-block;float:left"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span style="font-size:11px;color:var(--gray-400)">🟢 sold ${soldPct}% · 🔵 presented ${presPct}%</span>
+        <span style="font-size:12px;font-weight:600;color:${touchPct>=75?'var(--green)':touchPct>=50?'var(--amber)':'var(--red)'}">${touchPct}% touched</span>
+      </div>
+    </div>`;
+  });
+  h+=`</div></div>`;
+  
+  // PS S+C
+  h+=`<div style="margin-bottom:24px">
+    <h2 style="font-size:16px;font-weight:700;color:var(--gray-900);margin-bottom:14px;">💗 PS Shampoo & Conditioner</h2>
+    <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">Tracking across ${omCount} O&M salons</p>
+    <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="summary-card" style="border-left:4px solid var(--om);text-align:center">
+        <div style="font-size:36px;font-weight:800;color:var(--om)">${psSold}</div>
+        <div style="font-size:13px;color:var(--gray-500);margin-top:2px">Purchased</div>
+        <div style="font-size:11px;color:var(--gray-400)">${psPct}% of O&M clients</div>
+      </div>
+      <div class="summary-card" style="border-left:4px solid var(--green);text-align:center">
+        <div style="font-size:36px;font-weight:800;color:var(--green)">${psPres}</div>
+        <div style="font-size:13px;color:var(--gray-500);margin-top:2px">Presented</div>
+        <div style="font-size:11px;color:var(--gray-400)">${omCount?Math.round(psPres/omCount*100):0}% of O&M clients</div>
+      </div>
+      <div class="summary-card" style="border-left:4px solid var(--red);text-align:center">
+        <div style="font-size:36px;font-weight:800;color:var(--red)">${psNone}</div>
+        <div style="font-size:13px;color:var(--gray-500);margin-top:2px">Not Yet</div>
+        <div style="font-size:11px;color:var(--gray-400)">Still to present</div>
+      </div>
+    </div>
+    <div class="summary-card" style="margin-top:12px">
+      <div class="summary-row"><span class="summary-label">Conversion rate (presented → sold)</span><span class="summary-val" style="color:var(--om)">${psPres+psSold?Math.round(psSold/(psSold+psPres)*100):0}%</span></div>
+      <div class="summary-row"><span class="summary-label">Total touched (sold + presented)</span><span class="summary-val">${psSold+psPres}<span style="font-size:11px;color:var(--gray-400)">/${omCount} (${psTouchPct}%)</span></span></div>
+      <div class="summary-bar"><div class="summary-bar-fill" style="width:${psPct}%;background:var(--om);display:inline-block;float:left"></div><div class="summary-bar-fill" style="width:${omCount?Math.round(psPres/omCount*100):0}%;background:var(--green-light);display:inline-block;float:left"></div></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--gray-400)">🩷 sold ${psPct}% · 🟢 presented ${omCount?Math.round(psPres/omCount*100):0}% · Target: fill all ${omCount} O&M salons</div>
+    </div>
+  </div>`;
+  
+  // O&M Rewards
+  h+=`<div style="margin-bottom:24px">
+    <h2 style="font-size:16px;font-weight:700;color:var(--gray-900);margin-bottom:14px;">⭐ O&M Rewards Program</h2>
+    <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">Tracking across ${omCount} O&M salons</p>
+    <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="summary-card" style="border-left:4px solid var(--green);text-align:center">
+        <div style="font-size:36px;font-weight:800;color:var(--green)">${rewYes}</div>
+        <div style="font-size:13px;color:var(--gray-500);margin-top:2px">Active</div>
+        <div style="font-size:11px;color:var(--gray-400)">${rewPct}% enrolled</div>
+      </div>
+      <div class="summary-card" style="border-left:4px solid var(--amber);text-align:center">
+        <div style="font-size:36px;font-weight:800;color:var(--amber)">${rewTbc}</div>
+        <div style="font-size:13px;color:var(--gray-500);margin-top:2px">TBC</div>
+        <div style="font-size:11px;color:var(--gray-400)">Pending</div>
+      </div>
+      <div class="summary-card" style="border-left:4px solid var(--red);text-align:center">
+        <div style="font-size:36px;font-weight:800;color:var(--red)">${rewNone}</div>
+        <div style="font-size:13px;color:var(--gray-500);margin-top:2px">Not Enrolled</div>
+        <div style="font-size:11px;color:var(--gray-400)">Opportunity</div>
+      </div>
+    </div>
+    <div class="summary-card" style="margin-top:12px">
+      <div class="summary-bar"><div class="summary-bar-fill" style="width:${rewPct}%;background:var(--green);display:inline-block;float:left"></div><div class="summary-bar-fill" style="width:${omCount?Math.round(rewTbc/omCount*100):0}%;background:var(--amber-light);display:inline-block;float:left"></div></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--gray-400)">🟢 active ${rewPct}% · 🟡 pending ${omCount?Math.round(rewTbc/omCount*100):0}% · ${rewNone} salons to enrol</div>
+    </div>
+  </div>`;
+  
+  // Overall Snapshot
+  const totalSlots=t*BRANDS.length;
+  const filledSlots=D.salons.reduce((sum,s)=>sum+BRANDS.filter(b=>s.brands[b]).length,0);
+  const overallPct=Math.round(filledSlots/totalSlots*100);
+  const avgBrands=(filledSlots/t).toFixed(1);
+  const sectionStats=D.sections.map(sec=>({name:sec.name, count:D.salons.filter(s=>s.section===sec.id).length}));
+  
+  h+=`<div>
+    <h2 style="font-size:16px;font-weight:700;color:var(--gray-900);margin-bottom:14px;">📈 Overall Snapshot</h2>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <h3>Portfolio Overview</h3>
+        <div class="summary-row"><span class="summary-label">Total salons</span><span class="summary-val" style="font-size:20px">${t}</span></div>
+        <div class="summary-row"><span class="summary-label">Avg brands per salon</span><span class="summary-val">${avgBrands}</span></div>
+        <div class="summary-row"><span class="summary-label">Brand slots filled</span><span class="summary-val good">${filledSlots}<span style="font-size:11px;color:var(--gray-400)">/${totalSlots}</span></span></div>
+        <div class="summary-row"><span class="summary-label">Overall fill rate</span><span class="summary-val" style="color:${overallPct>=60?'var(--green)':overallPct>=40?'var(--amber)':'var(--red)'}">${overallPct}%</span></div>
+        <div class="summary-bar"><div class="summary-bar-fill" style="width:${overallPct}%;background:var(--green)"></div></div>
+      </div>
+      <div class="summary-card">
+        <h3>By Section</h3>`;
+  sectionStats.forEach(s=>{
+    h+=`<div class="summary-row"><span class="summary-label">${s.name}</span><span class="summary-val">${s.count}</span></div>`;
+  });
+  h+=`</div></div></div>`;
+  
+  document.getElementById('summary').innerHTML=h;
+}
+
+// =============================================
+// FILTERING & SEARCH
+// =============================================
+function getFiltered(){
+  let list=D.salons;
+  if(filter==='gaps') list=list.filter(s=>BRANDS.some(b=>!s.brands[b]));
+  else if(filter==='ps') list=list.filter(s=>s.ps!=='purchased');
+  else if(filter!=='all') list=list.filter(s=>s.brands[filter]);
+  if(search){
+    const q=search.toLowerCase();
+    list=list.filter(s=>s.name.toLowerCase().includes(q)||(s.notes&&s.notes.toLowerCase().includes(q))||(s.ps&&s.ps.toLowerCase().includes(q)));
+  }
+  return list;
+}
+
+function setFilter(f,btn){filter=f;document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
+function doSearch(v){search=v;render();}
+
+// =============================================
+// CELL INTERACTIONS
+// =============================================
+function togBrand(id,b){const s=find(id);if(!s)return;s.brands[b]=s.brands[b]?0:1;save();render();}
+function cycleEdu(id){const s=find(id);if(!s)return;const c=['','YES','DIGITAL'];s.edu=c[(c.indexOf(s.edu||'')+1)%3];save();render();}
+function cycleRew(id){const s=find(id);if(!s)return;const c=['','YES','TBC'];s.rewards=c[(c.indexOf(s.rewards||'')+1)%3];save();render();}
+function cycleDeal(id,k){const s=find(id);if(!s)return;const c=['','P','$'];const cur=s.deals[k]||'';s.deals[k]=c[(c.indexOf(cur)+1)%3];save();render();}
+function cyclePS(id){const s=find(id);if(!s)return;const c=['','presented','purchased'];s.ps=c[(c.indexOf(s.ps||'')+1)%3];save();render();}
+
+// Custom column: click to cycle Yes/No/blank
+function cycleCustom(id,colId){
+  const s=find(id);if(!s)return;
+  if(!s.custom) s.custom={};
+  const cur=(s.custom[colId]||'').toLowerCase();
+  if(cur===''||cur!=='yes'&&cur!=='no') s.custom[colId]='Yes';
+  else if(cur==='yes') s.custom[colId]='No';
+  else s.custom[colId]='';
+  save();render();
+}
+
+// Custom column: double-click for free text
+function openCustomCellEdit(salonId,colId,ev){
+  ev.stopPropagation();
+  ccmSalonId=salonId; ccmColId=colId;
+  const s=find(salonId);
+  const col=D.customColumns.find(c=>c.id===colId);
+  document.getElementById('ccmTitle').textContent=col?col.name:'Edit Value';
+  document.getElementById('ccmValue').value=(s&&s.custom&&s.custom[colId])||'';
+  document.getElementById('customCellModal').classList.add('show');
+  setTimeout(()=>document.getElementById('ccmValue').focus(),100);
+}
+function saveCCM(){
+  if(!ccmSalonId||!ccmColId)return;
+  const s=find(ccmSalonId);
+  if(!s)return;
+  if(!s.custom) s.custom={};
+  s.custom[ccmColId]=document.getElementById('ccmValue').value.trim();
+  save();render();closeCCM();
+}
+function closeCCM(){document.getElementById('customCellModal').classList.remove('show');ccmSalonId=null;ccmColId=null;}
+
+// =============================================
+// SALON CRUD
+// =============================================
+function openAddSalon(){editId=null;document.getElementById('smTitle').textContent='Add Salon';document.getElementById('smName').value='';document.getElementById('smStaff').value='SOLO';document.getElementById('smNotes').value='';document.getElementById('smDel').style.display='none';fillSections();document.getElementById('salonModal').classList.add('show');}
+function openEdit(id){const s=find(id);if(!s)return;editId=id;document.getElementById('smTitle').textContent='Edit Salon';document.getElementById('smName').value=s.name;document.getElementById('smStaff').value=s.staff||'SOLO';document.getElementById('smNotes').value=s.notes||'';document.getElementById('smDel').style.display='block';fillSections(s.section);document.getElementById('salonModal').classList.add('show');}
+function fillSections(sel){document.getElementById('smSection').innerHTML=D.sections.map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${s.name}</option>`).join('');}
+function saveSalon(){const n=document.getElementById('smName').value.trim();if(!n)return;if(editId){const s=find(editId);s.name=n;s.staff=document.getElementById('smStaff').value;s.section=document.getElementById('smSection').value;s.notes=document.getElementById('smNotes').value.trim();}else{D.salons.push({id:nid++,name:n,staff:document.getElementById('smStaff').value,section:document.getElementById('smSection').value,brands:{},edu:'',rewards:'',deals:{},ps:'',notes:document.getElementById('smNotes').value.trim(),custom:{}});}save();render();closeSM();}
+function delSalon(){if(!editId||!confirm('Delete this salon?'))return;D.salons=D.salons.filter(s=>s.id!==editId);save();render();closeSM();}
+function closeSM(){document.getElementById('salonModal').classList.remove('show');editId=null;}
+
+// Notes
+function openNotes(id){const s=find(id);if(!s)return;notesId=id;document.getElementById('nmTitle').textContent=s.name;document.getElementById('nmText').value=s.notes||'';document.getElementById('notesModal').classList.add('show');setTimeout(()=>document.getElementById('nmText').focus(),100);}
+function saveNotes(){if(!notesId)return;find(notesId).notes=document.getElementById('nmText').value.trim();save();render();closeNM();}
+function closeNM(){document.getElementById('notesModal').classList.remove('show');notesId=null;}
+
+// =============================================
+// DEAL MANAGER
+// =============================================
+function openDealManager(){renderDeals();document.getElementById('dealModal').classList.add('show');}
+function renderDeals(){document.getElementById('dealList').innerHTML=D.deals.map((d,i)=>`<div class="deal-tag">${d} <span class="x" onclick="remDeal(${i})">×</span></div>`).join('');}
+function addDeal(){const inp=document.getElementById('newDealInput');const v=inp.value.trim().toUpperCase();if(!v)return;D.deals.push(v);inp.value='';save();render();renderDeals();}
+function remDeal(i){if(!confirm(`Remove "${D.deals[i]}"?`))return;D.deals.splice(i,1);D.salons.forEach(s=>{const nd={};Object.keys(s.deals).forEach(k=>{const di=parseInt(k.substring(1));if(di<i)nd[k]=s.deals[k];else if(di>i)nd['d'+(di-1)]=s.deals[k];});s.deals=nd;});save();render();renderDeals();}
+function closeDM(){document.getElementById('dealModal').classList.remove('show');}
+
+// =============================================
+// CUSTOM COLUMNS
+// =============================================
+function openColumnsModal(){renderColumnList();document.getElementById('columnsModal').classList.add('show');}
+function closeColumnsModal(){document.getElementById('columnsModal').classList.remove('show');}
+
+function renderColumnList(){
+  let h='';
+  D.customColumns.forEach((col,i)=>{
+    h+=`<div class="col-tag">
+      <input type="text" value="${col.name}" onchange="renameColumn('${col.id}',this.value)">
+      <span class="x" onclick="deleteColumn('${col.id}')" title="Delete column">×</span>
+    </div>`;
+  });
+  if(!D.customColumns.length) h='<p style="font-size:12px;color:var(--gray-400);margin-bottom:8px;">No custom columns yet. Add one below.</p>';
+  document.getElementById('columnList').innerHTML=h;
+}
+
+function addCustomColumn(){
+  const inp=document.getElementById('newColInput');
+  const name=inp.value.trim();
+  if(!name) return;
+  const id='cc_'+Date.now();
+  D.customColumns.push({id:id, name:name});
+  // Ensure all salons have custom obj
+  D.salons.forEach(s=>{ if(!s.custom) s.custom={}; });
+  inp.value='';
+  save();render();renderColumnList();
+}
+
+function renameColumn(colId,newName){
+  const col=D.customColumns.find(c=>c.id===colId);
+  if(col) col.name=newName.trim()||col.name;
+  save();render();
+}
+
+function deleteColumn(colId){
+  if(!confirm('Delete this column? Data in this column will be lost.')) return;
+  D.customColumns=D.customColumns.filter(c=>c.id!==colId);
+  // Clean up data
+  D.salons.forEach(s=>{ if(s.custom) delete s.custom[colId]; });
+  // Clean up custom colors
+  const c=getCustom();
+  if(c.customColColors) delete c.customColColors[colId];
+  saveCustom(c);
+  save();render();renderColumnList();
+}
+
+// =============================================
+// IMPORT / EXPORT
+// =============================================
+function exportData(){const b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`salon-tracker-${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(u);}
+
+function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(ev){try{const d=JSON.parse(ev.target.result);if(d.salons&&d.deals&&d.sections){if(confirm(`Import ${d.salons.length} salons?`)){D=d;if(!D.customColumns)D.customColumns=[];D.salons.forEach(s=>{if(!s.custom)s.custom={};});save();render();}}else alert('Invalid format');}catch(er){alert('Error: '+er.message);}};r.readAsText(f);e.target.value='';}
+
+// =============================================
+// SETTINGS / CUSTOMISE
+// =============================================
+function openSettings(){
+  const c=getCustom();
+  
+  // Brand rows
+  let bh='';
+  BRANDS.forEach(b=>{
+    const color=c.brandColors[b]||DEFAULT_BRAND_COLORS[b];
+    const label=c.brandLabels[b]||DEFAULT_BRAND_LABELS[b];
+    bh+=`<div class="color-row">
+      <input type="color" value="${color}" onchange="updateBrandColor('${b}',this.value)">
+      <input type="text" value="${label}" style="flex:1;padding:7px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;" onchange="updateBrandLabel('${b}',this.value)" placeholder="Brand display name">
+      <span style="font-size:11px;color:var(--gray-400);min-width:30px;">${b}</span>
+    </div>`;
+  });
+  document.getElementById('settingsBrands').innerHTML=bh;
+  
+  // Section header colours
+  let sch='';
+  D.sections.forEach(sec=>{
+    if(sec.id==='dgom'){
+      const l=c.sectionColors.dgom_left||DEFAULT_SECTION_COLORS.dgom_left;
+      const r=c.sectionColors.dgom_right||DEFAULT_SECTION_COLORS.dgom_right;
+      sch+=`<div class="color-row">
+        <input type="color" value="${l}" onchange="updateSectionColor('dgom_left',this.value)">
+        <input type="color" value="${r}" onchange="updateSectionColor('dgom_right',this.value)">
+        <span class="cr-label">${sec.name} (gradient: left → right)</span>
+      </div>`;
+    } else if(sec.id==='nyom'){
+      const l=c.sectionColors.nyom_left||DEFAULT_SECTION_COLORS.nyom_left;
+      const r=c.sectionColors.nyom_right||DEFAULT_SECTION_COLORS.nyom_right;
+      sch+=`<div class="color-row">
+        <input type="color" value="${l}" onchange="updateSectionColor('nyom_left',this.value)">
+        <input type="color" value="${r}" onchange="updateSectionColor('nyom_right',this.value)">
+        <span class="cr-label">${sec.name} (gradient: left → right)</span>
+      </div>`;
+    } else {
+      const bg=c.sectionColors[sec.id]||DEFAULT_SECTION_COLORS[sec.id]||'#374151';
+      sch+=`<div class="color-row">
+        <input type="color" value="${bg}" onchange="updateSectionColor('${sec.id}',this.value)">
+        <span class="cr-label">${sec.name}</span>
+      </div>`;
+    }
+  });
+  document.getElementById('settingsSectionColors').innerHTML=sch;
+  
+  // Column header colours
+  let chh='';
+  chh+=`<div class="color-row">
+    <input type="color" value="${c.colHeaderColors.deals||DEFAULT_COL_HEADER_COLORS.deals}" onchange="updateColHeaderColor('deals',this.value)">
+    <span class="cr-label">Deal column headers</span>
+  </div>`;
+  chh+=`<div class="color-row">
+    <input type="color" value="${c.colHeaderColors.ps||DEFAULT_COL_HEADER_COLORS.ps}" onchange="updateColHeaderColor('ps',this.value)">
+    <span class="cr-label">PS column header</span>
+  </div>`;
+  chh+=`<div class="color-row">
+    <input type="color" value="${c.colHeaderColors.rewards||DEFAULT_COL_HEADER_COLORS.rewards}" onchange="updateColHeaderColor('rewards',this.value)">
+    <span class="cr-label">Rewards column header</span>
+  </div>`;
+  document.getElementById('settingsColHeaderColors').innerHTML=chh;
+  
+  // Status colours
+  let sth='';
+  sth+=`<div class="color-row">
+    <input type="color" value="${c.statusColors.purchased||DEFAULT_STATUS_COLORS.purchased}" onchange="updateStatusColor('purchased',this.value)">
+    <span class="cr-label">Purchased / Sold (green)</span>
+  </div>`;
+  sth+=`<div class="color-row">
+    <input type="color" value="${c.statusColors.presented||DEFAULT_STATUS_COLORS.presented}" onchange="updateStatusColor('presented',this.value)">
+    <span class="cr-label">Presented (blue)</span>
+  </div>`;
+  sth+=`<div class="color-row">
+    <input type="color" value="${c.statusColors.noOutcome||DEFAULT_STATUS_COLORS.noOutcome}" onchange="updateStatusColor('noOutcome',this.value)">
+    <span class="cr-label">No outcome (grey)</span>
+  </div>`;
+  document.getElementById('settingsStatusColors').innerHTML=sth;
+  
+  // Column header labels
+  let hh='';
+  hh+=`<div class="color-row">
+    <span style="font-size:11px;color:var(--gray-400);min-width:80px;">Rewards</span>
+    <input type="text" value="${c.rewardsLabel||'Rewards'}" style="flex:1;padding:7px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;" onchange="updateHeaderLabel('rewardsLabel',this.value)">
+  </div>`;
+  D.deals.forEach((d,i)=>{
+    const label=c.dealLabels['d'+i]||d;
+    hh+=`<div class="color-row">
+      <span style="font-size:11px;color:var(--gray-400);min-width:80px;">Deal ${i+1}</span>
+      <input type="text" value="${label}" style="flex:1;padding:7px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;" onchange="updateDealLabel(${i},this.value)">
+    </div>`;
+  });
+  hh+=`<div class="color-row">
+    <span style="font-size:11px;color:var(--gray-400);min-width:80px;">PS Target</span>
+    <input type="text" value="${c.psLabel||'PS S+C Target'}" style="flex:1;padding:7px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;" onchange="updateHeaderLabel('psLabel',this.value)">
+  </div>`;
+  document.getElementById('settingsHeaders').innerHTML=hh;
+
+  // Gap color
+  document.getElementById('settingsGapColor').value=c.gapColor||'#D1D5DB';
+  
+  // No-outcome color
+  document.getElementById('settingsNoOutcomeColor').value=c.noOutcomeColor||'#D1D5DB';
+  
+  // Section name rows
+  let sh='';
+  D.sections.forEach(sec=>{
+    sh+=`<div class="color-row">
+      <input type="text" value="${sec.name}" style="flex:1;padding:7px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;" onchange="updateSectionName('${sec.id}',this.value)">
+    </div>`;
+  });
+  document.getElementById('settingsSections').innerHTML=sh;
+  
+  // Custom column colours
+  if(D.customColumns.length>0){
+    document.getElementById('settingsCustomColsSection').style.display='block';
+    let cch='';
+    D.customColumns.forEach(col=>{
+      const colColor=c.customColColors[col.id]||'#4B5563';
+      cch+=`<div class="color-row">
+        <input type="color" value="${colColor}" onchange="updateCustomColColor('${col.id}',this.value)">
+        <input type="text" value="${col.name}" style="flex:1;padding:7px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;" onchange="renameColumn('${col.id}',this.value)" placeholder="Column name">
+      </div>`;
+    });
+    document.getElementById('settingsCustomCols').innerHTML=cch;
+  } else {
+    document.getElementById('settingsCustomColsSection').style.display='none';
+  }
+  
+  document.getElementById('settingsModal').classList.add('show');
+}
+
+function updateBrandColor(brand,color){
+  const c=getCustom();c.brandColors[brand]=color;saveCustom(c);applyCustomCSS();render();
+}
+function updateBrandLabel(brand,label){
+  const c=getCustom();c.brandLabels[brand]=label;saveCustom(c);render();
+}
+function updateGapColor(color){
+  const c=getCustom();c.gapColor=color;saveCustom(c);render();
+}
+function updateNoOutcomeColor(color){
+  const c=getCustom();c.noOutcomeColor=color;
+  // Also update the CSS variable
+  document.documentElement.style.setProperty('--no-outcome',color);
+  saveCustom(c);render();
+}
+function updateSectionColor(key,color){
+  const c=getCustom();
+  if(!c.sectionColors) c.sectionColors={};
+  c.sectionColors[key]=color;
+  saveCustom(c);render();
+}
+function updateColHeaderColor(key,color){
+  const c=getCustom();
+  if(!c.colHeaderColors) c.colHeaderColors={};
+  c.colHeaderColors[key]=color;
+  saveCustom(c);render();
+}
+function updateStatusColor(key,color){
+  const c=getCustom();
+  if(!c.statusColors) c.statusColors={};
+  c.statusColors[key]=color;
+  saveCustom(c);render();
+}
+function updateSectionName(secId,name){
+  const c=getCustom();
+  if(!c.sectionNames)c.sectionNames={};
+  c.sectionNames[secId]=name;
+  saveCustom(c);
+  const sec=D.sections.find(s=>s.id===secId);
+  if(sec)sec.name=name;
+  save();render();
+}
+function updateHeaderLabel(key,val){
+  const c=getCustom();c[key]=val;saveCustom(c);render();
+}
+function updateDealLabel(idx,val){
+  const c=getCustom();
+  if(!c.dealLabels)c.dealLabels={};
+  c.dealLabels['d'+idx]=val;
+  saveCustom(c);
+  if(D.deals[idx]!==undefined){D.deals[idx]=val;save();}
+  render();
+}
+function updateCustomColColor(colId,color){
+  const c=getCustom();
+  if(!c.customColColors) c.customColColors={};
+  c.customColColors[colId]=color;
+  saveCustom(c);render();
+}
+function closeSettings(){document.getElementById('settingsModal').classList.remove('show');}
+
+// =============================================
+// UTILITY: determine text colour for background
+// =============================================
+function textColorFor(hex){
+  if(!hex||hex.startsWith('var(')) return 'white';
+  hex=hex.replace('#','');
+  if(hex.length===3) hex=hex.split('').map(c=>c+c).join('');
+  const r=parseInt(hex.substr(0,2),16);
+  const g=parseInt(hex.substr(2,2),16);
+  const b=parseInt(hex.substr(4,2),16);
+  const lum=(0.299*r+0.587*g+0.114*b)/255;
+  return lum>0.6?'#111827':'white';
+}
+function lightenColor(hex,amt){
+  if(!hex||hex.startsWith('var(')) return 'rgba(255,255,255,0.2)';
+  hex=hex.replace('#','');
+  if(hex.length===3) hex=hex.split('').map(c=>c+c).join('');
+  let r=parseInt(hex.substr(0,2),16);
+  let g=parseInt(hex.substr(2,2),16);
+  let b=parseInt(hex.substr(4,2),16);
+  r=Math.min(255,Math.round(r+(255-r)*amt));
+  g=Math.min(255,Math.round(g+(255-g)*amt));
+  b=Math.min(255,Math.round(b+(255-b)*amt));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+// =============================================
+// KEYBOARD & MODAL DISMISS
+// =============================================
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeSM();closeDM();closeNM();closeSettings();closeColumnsModal();closeCCM();}
+});
+document.querySelectorAll('.modal-bg').forEach(o=>o.addEventListener('click',e=>{
+  if(e.target===o){closeSM();closeDM();closeNM();closeSettings();closeColumnsModal();closeCCM();}
+}));
+
+init();
+</script>
+</body>
+</html>
