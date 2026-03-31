@@ -182,6 +182,22 @@
   .col-tag .x { cursor: pointer; color: var(--gray-400); font-weight: 700; font-size: 16px; padding: 2px 6px; border-radius: 4px; }
   .col-tag .x:hover { color: var(--red); background: var(--red-light); }
 
+  .col-block { margin-bottom: 14px; padding: 10px 12px; border-radius: 10px; background: var(--gray-50); border: 1px solid var(--gray-200); }
+  .col-block-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .col-block-header input { flex: 1; padding: 5px 8px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 13px; outline: none; font-family: inherit; font-weight: 600; }
+  .col-block-header .x { cursor: pointer; color: var(--gray-400); font-weight: 700; font-size: 16px; padding: 2px 6px; border-radius: 4px; }
+  .col-block-header .x:hover { color: var(--red); background: var(--red-light); }
+  .status-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 14px; font-size: 12px; font-weight: 600; }
+  .status-pill .x { cursor: pointer; font-size: 13px; font-weight: 700; opacity: 0.6; margin-left: 2px; }
+  .status-pill .x:hover { opacity: 1; }
+  .add-status-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+  .add-status-row input[type="text"] { flex: 1; padding: 5px 8px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 12px; outline: none; font-family: inherit; }
+  .add-status-row input[type="color"] { width: 30px; height: 28px; border: 1px solid var(--gray-200); border-radius: 6px; cursor: pointer; padding: 2px; }
+  .add-status-row button { padding: 5px 12px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; background: var(--gray-800); color: white; white-space: nowrap; }
+  .add-status-row button:hover { background: var(--gray-700); }
+  .custom-cell-status { font-weight: 600; font-size: 12px; }
+
   .settings-section { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--gray-100); }
   .settings-section:last-child { border-bottom: none; }
   .settings-section-title { display: block; font-size: 11px; font-weight: 700; color: var(--gray-500); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -306,9 +322,9 @@
 
 <!-- Columns Modal -->
 <div class="modal-bg" id="columnsModal">
-  <div class="modal">
+  <div class="modal" style="max-width:520px;max-height:85vh;overflow-y:auto;">
     <h3>📋 Custom Columns</h3>
-    <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">Add custom columns that appear after PS and before Notes. Click cells to cycle Yes → No → blank, or double-click to type free text.</p>
+    <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">Add custom columns with custom statuses. Columns without statuses use Yes/No/blank cycling + free text on double-click. Columns with statuses cycle through them on click.</p>
     <div id="columnList"></div>
     <div class="mf" style="margin-top:14px;">
       <label>Add New Column</label>
@@ -375,7 +391,7 @@
     </div>
 
     <div class="settings-section" id="settingsCustomColsSection" style="display:none;">
-      <span class="settings-section-title">Custom Column Colours</span>
+      <span class="settings-section-title">Custom Column & Status Colours</span>
       <div id="settingsCustomCols"></div>
     </div>
 
@@ -514,6 +530,8 @@ function init(){
     if(!s.custom) s.custom={};
   });
   if(!D.customColumns) D.customColumns=[];
+  // Migration: ensure every custom column has a statuses array
+  D.customColumns.forEach(col=>{ if(!col.statuses) col.statuses=[]; });
   nid=Math.max(...D.salons.map(s=>s.id),99)+1;
   applyCustomCSS();
   render();
@@ -713,11 +731,27 @@ function salonRow(s,alt,c){
   // Custom columns
   D.customColumns.forEach(col=>{
     const val=(s.custom&&s.custom[col.id])||'';
-    let cellCls='custom-val-empty';
-    if(val.toLowerCase()==='yes') cellCls='custom-val-yes';
-    else if(val.toLowerCase()==='no') cellCls='custom-val-no';
-    else if(val) cellCls='custom-val-text';
-    h+=`<td class="custom-cell ${cellCls}" onclick="cycleCustom(${s.id},'${col.id}')" ondblclick="openCustomCellEdit(${s.id},'${col.id}',event)">${val||'—'}</td>`;
+    if(col.statuses&&col.statuses.length>0){
+      // Column has statuses — use status colours
+      const matchedStatus=col.statuses.find(st=>st.name===val);
+      if(matchedStatus){
+        const txtC=textColorFor(matchedStatus.color);
+        h+=`<td class="custom-cell custom-cell-status" style="background:${matchedStatus.color} !important;color:${txtC}" onclick="cycleCustom(${s.id},'${col.id}')" ondblclick="openCustomCellEdit(${s.id},'${col.id}',event)">${val}</td>`;
+      } else if(val){
+        // Has a value but doesn't match any status — free text
+        h+=`<td class="custom-cell custom-val-text" onclick="cycleCustom(${s.id},'${col.id}')" ondblclick="openCustomCellEdit(${s.id},'${col.id}',event)">${val}</td>`;
+      } else {
+        // Empty — use noOutcome colour
+        h+=`<td class="custom-cell" style="background:${noOutcome} !important;color:${textColorFor(noOutcome)}" onclick="cycleCustom(${s.id},'${col.id}')" ondblclick="openCustomCellEdit(${s.id},'${col.id}',event)">—</td>`;
+      }
+    } else {
+      // No statuses — original Yes/No/blank behaviour
+      let cellCls='custom-val-empty';
+      if(val.toLowerCase()==='yes') cellCls='custom-val-yes';
+      else if(val.toLowerCase()==='no') cellCls='custom-val-no';
+      else if(val) cellCls='custom-val-text';
+      h+=`<td class="custom-cell ${cellCls}" onclick="cycleCustom(${s.id},'${col.id}')" ondblclick="openCustomCellEdit(${s.id},'${col.id}',event)">${val||'—'}</td>`;
+    }
   });
   // Notes
   h+=`<td class="notes-cell" onclick="openNotes(${s.id})" title="${(s.notes||'Click to add').replace(/"/g,'&quot;')}">${s.notes||''}</td>`;
@@ -925,23 +959,36 @@ function cycleRew(id){const s=find(id);if(!s)return;const c=['','YES','TBC'];s.r
 function cycleDeal(id,k){const s=find(id);if(!s)return;const c=['','P','$'];const cur=s.deals[k]||'';s.deals[k]=c[(c.indexOf(cur)+1)%3];save();render();}
 function cyclePS(id){const s=find(id);if(!s)return;const c=['','presented','purchased'];s.ps=c[(c.indexOf(s.ps||'')+1)%3];save();render();}
 
-// Custom column: click to cycle Yes/No/blank
+// Custom column: click to cycle through statuses or Yes/No/blank
 function cycleCustom(id,colId){
   const s=find(id);if(!s)return;
   if(!s.custom) s.custom={};
-  const cur=(s.custom[colId]||'').toLowerCase();
-  if(cur===''||cur!=='yes'&&cur!=='no') s.custom[colId]='Yes';
-  else if(cur==='yes') s.custom[colId]='No';
-  else s.custom[colId]='';
+  const col=D.customColumns.find(c=>c.id===colId);
+  if(col&&col.statuses&&col.statuses.length>0){
+    // Cycle through: empty → status[0] → status[1] → ... → empty
+    const cur=s.custom[colId]||'';
+    const idx=col.statuses.findIndex(st=>st.name===cur);
+    if(idx===-1) s.custom[colId]=col.statuses[0].name;
+    else if(idx===col.statuses.length-1) s.custom[colId]='';
+    else s.custom[colId]=col.statuses[idx+1].name;
+  } else {
+    // No statuses: Yes/No/blank cycling
+    const cur=(s.custom[colId]||'').toLowerCase();
+    if(cur===''||cur!=='yes'&&cur!=='no') s.custom[colId]='Yes';
+    else if(cur==='yes') s.custom[colId]='No';
+    else s.custom[colId]='';
+  }
   save();render();
 }
 
-// Custom column: double-click for free text
+// Custom column: double-click for free text (only for columns without statuses)
 function openCustomCellEdit(salonId,colId,ev){
   ev.stopPropagation();
+  // If column has statuses, double-click just does a cycle (same as click)
+  const col=D.customColumns.find(c=>c.id===colId);
+  if(col&&col.statuses&&col.statuses.length>0){ cycleCustom(salonId,colId); return; }
   ccmSalonId=salonId; ccmColId=colId;
   const s=find(salonId);
-  const col=D.customColumns.find(c=>c.id===colId);
   document.getElementById('ccmTitle').textContent=col?col.name:'Edit Value';
   document.getElementById('ccmValue').value=(s&&s.custom&&s.custom[colId])||'';
   document.getElementById('customCellModal').classList.add('show');
@@ -990,10 +1037,30 @@ function closeColumnsModal(){document.getElementById('columnsModal').classList.r
 function renderColumnList(){
   let h='';
   D.customColumns.forEach((col,i)=>{
-    h+=`<div class="col-tag">
-      <input type="text" value="${col.name}" onchange="renameColumn('${col.id}',this.value)">
-      <span class="x" onclick="deleteColumn('${col.id}')" title="Delete column">×</span>
+    if(!col.statuses) col.statuses=[];
+    h+=`<div class="col-block">
+      <div class="col-block-header">
+        <input type="text" value="${col.name}" onchange="renameColumn('${col.id}',this.value)">
+        <span class="x" onclick="deleteColumn('${col.id}')" title="Delete column">×</span>
+      </div>`;
+    // Status pills
+    if(col.statuses.length){
+      h+=`<div class="status-pills">`;
+      col.statuses.forEach((st,si)=>{
+        const txtC=textColorFor(st.color);
+        h+=`<span class="status-pill" style="background:${st.color};color:${txtC}">${st.name}<span class="x" onclick="deleteStatus('${col.id}',${si})">×</span></span>`;
+      });
+      h+=`</div>`;
+    } else {
+      h+=`<p style="font-size:11px;color:var(--gray-400);margin-bottom:4px;">No statuses — cells will use Yes/No/blank cycling</p>`;
+    }
+    // Add status row
+    h+=`<div class="add-status-row">
+      <input type="text" id="statusName_${col.id}" placeholder="Status name">
+      <input type="color" id="statusColor_${col.id}" value="#10B981">
+      <button onclick="addStatus('${col.id}')">+ Status</button>
     </div>`;
+    h+=`</div>`;
   });
   if(!D.customColumns.length) h='<p style="font-size:12px;color:var(--gray-400);margin-bottom:8px;">No custom columns yet. Add one below.</p>';
   document.getElementById('columnList').innerHTML=h;
@@ -1004,7 +1071,7 @@ function addCustomColumn(){
   const name=inp.value.trim();
   if(!name) return;
   const id='cc_'+Date.now();
-  D.customColumns.push({id:id, name:name});
+  D.customColumns.push({id:id, name:name, statuses:[]});
   // Ensure all salons have custom obj
   D.salons.forEach(s=>{ if(!s.custom) s.custom={}; });
   inp.value='';
@@ -1029,12 +1096,37 @@ function deleteColumn(colId){
   save();render();renderColumnList();
 }
 
+function addStatus(colId){
+  const col=D.customColumns.find(c=>c.id===colId);
+  if(!col) return;
+  const nameEl=document.getElementById('statusName_'+colId);
+  const colorEl=document.getElementById('statusColor_'+colId);
+  const name=nameEl.value.trim();
+  if(!name) return;
+  if(!col.statuses) col.statuses=[];
+  col.statuses.push({id:'st_'+Date.now(), name:name, color:colorEl.value});
+  nameEl.value='';
+  save();render();renderColumnList();
+}
+
+function deleteStatus(colId,statusIdx){
+  const col=D.customColumns.find(c=>c.id===colId);
+  if(!col||!col.statuses) return;
+  const removedName=col.statuses[statusIdx].name;
+  col.statuses.splice(statusIdx,1);
+  // Clear salon data that matches the removed status
+  D.salons.forEach(s=>{
+    if(s.custom&&s.custom[colId]===removedName) s.custom[colId]='';
+  });
+  save();render();renderColumnList();
+}
+
 // =============================================
 // IMPORT / EXPORT
 // =============================================
 function exportData(){const b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`salon-tracker-${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(u);}
 
-function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(ev){try{const d=JSON.parse(ev.target.result);if(d.salons&&d.deals&&d.sections){if(confirm(`Import ${d.salons.length} salons?`)){D=d;if(!D.customColumns)D.customColumns=[];D.salons.forEach(s=>{if(!s.custom)s.custom={};});save();render();}}else alert('Invalid format');}catch(er){alert('Error: '+er.message);}};r.readAsText(f);e.target.value='';}
+function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(ev){try{const d=JSON.parse(ev.target.result);if(d.salons&&d.deals&&d.sections){if(confirm(`Import ${d.salons.length} salons?`)){D=d;if(!D.customColumns)D.customColumns=[];D.customColumns.forEach(col=>{if(!col.statuses)col.statuses=[];});D.salons.forEach(s=>{if(!s.custom)s.custom={};});save();render();}}else alert('Invalid format');}catch(er){alert('Error: '+er.message);}};r.readAsText(f);e.target.value='';}
 
 // =============================================
 // SETTINGS / CUSTOMISE
@@ -1153,16 +1245,28 @@ function openSettings(){
   });
   document.getElementById('settingsSections').innerHTML=sh;
   
-  // Custom column colours
+  // Custom column colours + status colours
   if(D.customColumns.length>0){
     document.getElementById('settingsCustomColsSection').style.display='block';
     let cch='';
     D.customColumns.forEach(col=>{
       const colColor=c.customColColors[col.id]||'#4B5563';
-      cch+=`<div class="color-row">
-        <input type="color" value="${colColor}" onchange="updateCustomColColor('${col.id}',this.value)">
-        <input type="text" value="${col.name}" style="flex:1;padding:7px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;" onchange="renameColumn('${col.id}',this.value)" placeholder="Column name">
-      </div>`;
+      cch+=`<div style="margin-bottom:12px;padding:10px;border-radius:8px;background:var(--gray-50);border:1px solid var(--gray-200);">
+        <div class="color-row" style="margin-bottom:6px;">
+          <input type="color" value="${colColor}" onchange="updateCustomColColor('${col.id}',this.value)">
+          <span class="cr-label" style="font-weight:600;">${col.name} — Header</span>
+        </div>`;
+      if(col.statuses&&col.statuses.length>0){
+        col.statuses.forEach((st,si)=>{
+          cch+=`<div class="color-row">
+            <input type="color" value="${st.color}" onchange="updateStatusColorForCol('${col.id}',${si},this.value)">
+            <span class="cr-label">${st.name}</span>
+          </div>`;
+        });
+      } else {
+        cch+=`<p style="font-size:11px;color:var(--gray-400);margin-left:46px;">No statuses defined — uses Yes/No styling</p>`;
+      }
+      cch+=`</div>`;
     });
     document.getElementById('settingsCustomCols').innerHTML=cch;
   } else {
@@ -1230,6 +1334,12 @@ function updateCustomColColor(colId,color){
   if(!c.customColColors) c.customColColors={};
   c.customColColors[colId]=color;
   saveCustom(c);render();
+}
+function updateStatusColorForCol(colId,statusIdx,color){
+  const col=D.customColumns.find(c=>c.id===colId);
+  if(!col||!col.statuses||!col.statuses[statusIdx]) return;
+  col.statuses[statusIdx].color=color;
+  save();render();
 }
 function closeSettings(){document.getElementById('settingsModal').classList.remove('show');}
 
