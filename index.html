@@ -541,7 +541,7 @@ const DEFAULT_COL_HEADER_COLORS = {
 };
 
 const DEFAULT_STATUS_COLORS = {
-  purchased:'#10B981', presented:'#DBEAFE', noOutcome:'#D1D5DB'
+  purchased:'#10B981', presented:'#DBEAFE', noOutcome:'#D1D5DB', psPurchased:'#10B981', psPresented:'#DBEAFE'
 };
 
 function getCustom(){
@@ -705,8 +705,8 @@ function salonRow(s,alt,c){
   // PS — no outcome = grey
   const psV=s.ps||'';
   let psBg, psTxtColor;
-  if(psV==='purchased'){ psBg=statusPurchased; psTxtColor='white'; }
-  else if(psV==='presented'){ psBg=statusPresented; psTxtColor=textColorFor(statusPresented); }
+  const psPurchased=c.statusColors.psPurchased||'#10B981'; const psPresented=c.statusColors.psPresented||'#DBEAFE'; if(psV==='purchased'){ psBg=psPurchased; psTxtColor='white'; }
+  else if(psV==='presented'){ psBg=psPresented; psTxtColor=textColorFor(psPresented); }
   else { psBg=noOutcome; psTxtColor=textColorFor(noOutcome); }
   const psTxt=psV==='purchased'?'✓ Sold':psV==='presented'?'Presented':'—';
   h+=`<td class="ps-cell" style="background:${psBg} !important" onclick="cyclePS(${s.id})"><span class="ps-pip" style="color:${psTxtColor}">${psTxt}</span></td>`;
@@ -1114,6 +1114,9 @@ function openSettings(){
     <input type="color" value="${c.statusColors.noOutcome||DEFAULT_STATUS_COLORS.noOutcome}" onchange="updateStatusColor('noOutcome',this.value)">
     <span class="cr-label">No outcome (grey)</span>
   </div>`;
+  sth+=`<hr style="margin:12px 0;border:none;border-top:1px solid var(--gray-200)"><div style="font-weight:600;font-size:12px;margin-bottom:8px;color:var(--gray-700)">PS S&C Column</div>`;
+  sth+=`<div class="color-row"><input type="color" value="${c.statusColors.psPurchased||DEFAULT_STATUS_COLORS.psPurchased}" onchange="updateStatusColor('psPurchased',this.value)"><span class="cr-label">PS Sold</span></div>`;
+  sth+=`<div class="color-row"><input type="color" value="${c.statusColors.psPresented||DEFAULT_STATUS_COLORS.psPresented}" onchange="updateStatusColor('psPresented',this.value)"><span class="cr-label">PS Presented</span></div>`;
   document.getElementById('settingsStatusColors').innerHTML=sth;
   
   // Column header labels
