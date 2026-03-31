@@ -1245,28 +1245,40 @@ function openSettings(){
   });
   document.getElementById('settingsSections').innerHTML=sh;
   
-  // Custom column colours + status colours
+  // Custom column colours + full status management
   if(D.customColumns.length>0){
     document.getElementById('settingsCustomColsSection').style.display='block';
     let cch='';
     D.customColumns.forEach(col=>{
       const colColor=c.customColColors[col.id]||'#4B5563';
-      cch+=`<div style="margin-bottom:12px;padding:10px;border-radius:8px;background:var(--gray-50);border:1px solid var(--gray-200);">
-        <div class="color-row" style="margin-bottom:6px;">
+      if(!col.statuses) col.statuses=[];
+      cch+=`<div style="margin-bottom:16px;padding:12px;border-radius:10px;background:var(--gray-50);border:1px solid var(--gray-200);">
+        <div class="color-row" style="margin-bottom:8px;">
           <input type="color" value="${colColor}" onchange="updateCustomColColor('${col.id}',this.value)">
-          <span class="cr-label" style="font-weight:600;">${col.name} — Header</span>
-        </div>`;
-      if(col.statuses&&col.statuses.length>0){
+          <span class="cr-label" style="font-weight:700;font-size:13px;">${col.name} — Header Colour</span>
+        </div>
+        <div style="margin-left:4px;margin-top:8px;">
+          <div style="font-weight:600;font-size:11px;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:8px;">Statuses</div>`;
+      if(col.statuses.length>0){
         col.statuses.forEach((st,si)=>{
-          cch+=`<div class="color-row">
+          const txtC=textColorFor(st.color);
+          cch+=`<div class="color-row" style="margin-bottom:6px;">
             <input type="color" value="${st.color}" onchange="updateStatusColorForCol('${col.id}',${si},this.value)">
-            <span class="cr-label">${st.name}</span>
+            <input type="text" value="${st.name}" style="flex:1;padding:5px 10px;border:1.5px solid var(--gray-200);border-radius:6px;font-size:12px;outline:none;font-family:inherit;" onchange="renameStatusForCol('${col.id}',${si},this.value)">
+            <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${st.color};color:${txtC};">Preview</span>
+            <span style="cursor:pointer;color:var(--gray-400);font-weight:700;font-size:14px;padding:2px 6px;border-radius:4px;" onclick="deleteStatusFromSettings('${col.id}',${si})" onmouseover="this.style.color='var(--red)';this.style.background='var(--red-light)'" onmouseout="this.style.color='var(--gray-400)';this.style.background='transparent'">×</span>
           </div>`;
         });
       } else {
-        cch+=`<p style="font-size:11px;color:var(--gray-400);margin-left:46px;">No statuses defined — uses Yes/No styling</p>`;
+        cch+=`<p style="font-size:11px;color:var(--gray-400);margin-bottom:6px;">No statuses yet - cells will use Yes/No/blank cycling</p>`;
       }
-      cch+=`</div>`;
+      cch+=`<div class="add-status-row" style="margin-top:8px;">
+            <input type="text" id="settingsStatusName_${col.id}" placeholder="New status name" style="flex:1;padding:5px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;outline:none;font-family:inherit;">
+            <input type="color" id="settingsStatusColor_${col.id}" value="#10B981" style="width:30px;height:28px;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;padding:2px;">
+            <button onclick="addStatusFromSettings('${col.id}')" style="padding:5px 12px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:var(--gray-800);color:white;white-space:nowrap;">+ Add</button>
+          </div>
+        </div>
+      </div>`;
     });
     document.getElementById('settingsCustomCols').innerHTML=cch;
   } else {
@@ -1339,7 +1351,42 @@ function updateStatusColorForCol(colId,statusIdx,color){
   const col=D.customColumns.find(c=>c.id===colId);
   if(!col||!col.statuses||!col.statuses[statusIdx]) return;
   col.statuses[statusIdx].color=color;
+  save();render();openSettings();
+}
+function renameStatusForCol(colId,statusIdx,newName){
+  const col=D.customColumns.find(c=>c.id===colId);
+  if(!col||!col.statuses||!col.statuses[statusIdx]) return;
+  const oldName=col.statuses[statusIdx].name;
+  const name=newName.trim();
+  if(!name) return;
+  col.statuses[statusIdx].name=name;
+  // Update salon data that used the old name
+  D.salons.forEach(s=>{
+    if(s.custom&&s.custom[colId]===oldName) s.custom[colId]=name;
+  });
   save();render();
+}
+function addStatusFromSettings(colId){
+  const col=D.customColumns.find(c=>c.id===colId);
+  if(!col) return;
+  const nameEl=document.getElementById('settingsStatusName_'+colId);
+  const colorEl=document.getElementById('settingsStatusColor_'+colId);
+  const name=nameEl.value.trim();
+  if(!name) return;
+  if(!col.statuses) col.statuses=[];
+  col.statuses.push({id:'st_'+Date.now(), name:name, color:colorEl.value});
+  nameEl.value='';
+  save();render();openSettings();
+}
+function deleteStatusFromSettings(colId,statusIdx){
+  const col=D.customColumns.find(c=>c.id===colId);
+  if(!col||!col.statuses) return;
+  const removedName=col.statuses[statusIdx].name;
+  col.statuses.splice(statusIdx,1);
+  D.salons.forEach(s=>{
+    if(s.custom&&s.custom[colId]===removedName) s.custom[colId]='';
+  });
+  save();render();openSettings();
 }
 function closeSettings(){document.getElementById('settingsModal').classList.remove('show');}
 
