@@ -705,8 +705,8 @@ function salonRow(s,alt,c){
   // PS — no outcome = grey
   const psV=s.ps||'';
   let psBg, psTxtColor;
-  if(psV==='purchased'){ psBg=c.colHeaderColors.ps||'#E91E8A'; psTxtColor='white'; }
-  else if(psV==='presented'){ psBg='var(--green-light)'; psTxtColor='#065F46'; }
+  if(psV==='purchased'){ psBg=statusPurchased; psTxtColor='white'; }
+  else if(psV==='presented'){ psBg=statusPresented; psTxtColor=textColorFor(statusPresented); }
   else { psBg=noOutcome; psTxtColor=textColorFor(noOutcome); }
   const psTxt=psV==='purchased'?'✓ Sold':psV==='presented'?'Presented':'—';
   h+=`<td class="ps-cell" style="background:${psBg} !important" onclick="cyclePS(${s.id})"><span class="ps-pip" style="color:${psTxtColor}">${psTxt}</span></td>`;
